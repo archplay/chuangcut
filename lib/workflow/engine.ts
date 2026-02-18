@@ -27,6 +27,7 @@ import { DEFAULT_RETRY } from './types'
 // 全局标记类型声明（防止 HMR 时重复启动定时器）
 declare global {
   var __tempFileCleanupStarted: boolean | undefined
+  var __zombieTaskCleanupStarted: boolean | undefined
 }
 
 /**
@@ -150,9 +151,11 @@ export class WorkflowEngine {
    * @param workflow 工作流定义
    */
   async resume(jobId: string, workflow: WorkflowDefinition): Promise<void> {
-    // 并发控制：防止重复启动
+    // 强制终止可能已存在的任务实例（防止僵尸任务）
     if (this.runningJobs.has(jobId)) {
-      throw new Error(`任务 ${jobId} 正在执行中，请勿重复操作`)
+      logger.warn(`任务 ${jobId} 正在运行中，强制终止并重新接管`, { jobId })
+      this.runningJobs.delete(jobId)
+      this.jobLastHeartbeat.delete(jobId)
     }
 
     this.runningJobs.add(jobId)
@@ -475,6 +478,48 @@ export const workflowEngine = new WorkflowEngine()
 import { registerAllSteps } from './steps'
 
 registerAllSteps()
+
+// 启动任务状态监控定时器（检测并清理僵尸任务）
+// 每 5 分钟检查一次，如果任务超过 30 分钟无心跳，标记为失败
+if (!globalThis.__zombieTaskCleanupStarted) {
+  globalThis.__zombieTaskCleanupStarted = true
+  setInterval(
+    async () => {
+      try {
+        const jobs = jobsRepo.list({ status: 'processing', limit: 100 })
+        const now = Date.now()
+        const ZOMBIE_THRESHOLD = 30 * 60 * 1000 // 30 分钟无心跳
+
+        for (const job of jobs) {
+          // 如果内存中没有运行标记，或者心跳超时
+          const lastHeartbeat = workflowEngine['jobLastHeartbeat'].get(job.id)
+          const isInMemory = workflowEngine.isRunning(job.id)
+
+          if (!isInMemory || (lastHeartbeat && now - lastHeartbeat > ZOMBIE_THRESHOLD)) {
+            logger.warn(`检测到僵尸任务: ${job.id}`, {
+              isInMemory,
+              lastHeartbeat: lastHeartbeat ? new Date(lastHeartbeat).toISOString() : 'none',
+            })
+
+            // 标记任务失败
+            await workflowStateManager.markFailed(
+              job.id,
+              new Error('任务长时间无响应或进程意外终止（僵尸任务自动清理）'),
+            )
+            
+            // 清理内存状态
+            workflowEngine['runningJobs'].delete(job.id)
+            workflowEngine['jobLastHeartbeat'].delete(job.id)
+          }
+        }
+      } catch (e) {
+        logger.error('僵尸任务清理失败', { error: e instanceof Error ? e.message : String(e) })
+      }
+    },
+    5 * 60 * 1000,
+  ) // 每 5 分钟
+  logger.info('[Engine] 僵尸任务监控定时器已启动（间隔: 5分钟，阈值: 30分钟）')
+}
 
 // 启动临时文件定期清理定时器（每 6 小时清理 24 小时前的文件）
 // 防止进程崩溃时临时文件累积占用磁盘

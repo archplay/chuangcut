@@ -5,7 +5,7 @@
 
 'use client'
 
-import { AlertCircle, Film, MoreVertical, Trash2 } from 'lucide-react'
+import { AlertCircle, Download, Film, MoreVertical, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
@@ -142,6 +142,23 @@ export function JobListClient({
                   </CardDescription>
                 </div>
                 <div className="flex shrink-0 gap-2">
+                  {job.status === 'completed' && (
+                    <a
+                      href={`/api/jobs/${job.id}/download`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="no-underline"
+                    >
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="bg-claude-orange-50 hover:bg-claude-orange-100 border-claude-orange-200 text-claude-orange-700 hover:text-claude-orange-800"
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        下载视频
+                      </Button>
+                    </a>
+                  )}
                   <Link href={`/jobs/${job.id}`}>
                     <Button variant="outline" size="sm">
                       运行日志

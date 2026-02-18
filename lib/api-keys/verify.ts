@@ -11,7 +11,13 @@ import {
   type ServiceAccountCredentials,
 } from '@/lib/ai/gemini-utils'
 import { FISH_AUDIO_DEFAULT_VOICE_ID } from '@/lib/ai/tts/fish-audio-provider'
+import { setupGlobalProxy } from '@/lib/utils/proxy-setup'
 import type { ApiKeyService } from '@/types'
+
+// 初始化代理（如果在开发环境）
+if (process.env.NODE_ENV === 'development') {
+  setupGlobalProxy()
+}
 
 // ============================================================
 // 类型定义

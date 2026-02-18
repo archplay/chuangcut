@@ -7,7 +7,7 @@
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Download } from 'lucide-react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { PageHeader } from '@/components/layout/page-header'
@@ -62,6 +62,19 @@ export default async function WorkbenchPage({ params }: WorkbenchPageProps) {
         description={`${job.style_name || '未知风格'} | 创建于 ${formatDate(job.created_at)} | 状态：${getStatusText(job.status)}`}
         actions={
           <div className="flex items-center gap-3">
+            {job.status === 'completed' && (
+              <a
+                href={`/api/jobs/${job.id}/download`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="no-underline"
+              >
+                <Button className="bg-claude-orange-500 hover:bg-claude-orange-600 text-white" size="sm">
+                  <Download className="mr-2 h-4 w-4" />
+                  下载视频
+                </Button>
+              </a>
+            )}
             <Link href="/jobs">
               <Button variant="outline" size="sm">
                 <ArrowLeft className="mr-2 h-4 w-4" />

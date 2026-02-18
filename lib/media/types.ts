@@ -207,7 +207,7 @@ export interface FFmpegServiceConfig {
 /** 默认服务配置 */
 export const DEFAULT_CONFIG: FFmpegServiceConfig = {
   outputDir: OUTPUT_DIR,
-  ffmpegPath: 'ffmpeg',
-  ffprobePath: 'ffprobe',
+  ffmpegPath: process.env.FFMPEG_PATH || 'ffmpeg',
+  ffprobePath: process.env.FFPROBE_PATH || 'ffprobe',
   defaultTimeout: 60 * 60 * 1000, // 60 分钟（支持 300MB 大视频处理）
 }

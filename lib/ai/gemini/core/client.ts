@@ -5,12 +5,16 @@
 
 import { GoogleGenAI } from '@google/genai'
 import { logger } from '@/lib/utils/logger'
+import { setupGlobalProxy } from '@/lib/utils/proxy-setup'
 import type { AIStudioCredentials, GeminiPlatform, VertexCredentials } from '@/types/ai/gemini'
 
 /**
  * 创建 AI Studio 客户端
  */
 export function createAIStudioClient(credentials: AIStudioCredentials): GoogleGenAI {
+  if (process.env.NODE_ENV === 'development') {
+    setupGlobalProxy()
+  }
   logger.info('[GenAI] 创建 AI Studio 客户端', {
     modelId: credentials.modelId,
   })
@@ -25,6 +29,9 @@ export function createAIStudioClient(credentials: AIStudioCredentials): GoogleGe
  * 使用 Service Account JSON 进行认证
  */
 export function createVertexClient(credentials: VertexCredentials): GoogleGenAI {
+  if (process.env.NODE_ENV === 'development') {
+    setupGlobalProxy()
+  }
   logger.info('[GenAI] 创建 Vertex AI 客户端', {
     projectId: credentials.projectId,
     location: credentials.location,

@@ -33,6 +33,12 @@ import { buildVideoPart, uploadFromUrl } from './file-manager'
 import { safeParseJson } from './parsers/json-extractor'
 import { BATCH_NARRATION_SCHEMA, repairJsonWithAI } from './parsers/json-repair'
 import { convertToGsUri } from './utils/url-converter'
+import { setupGlobalProxy } from '@/lib/utils/proxy-setup'
+
+// 初始化全局代理（如果在开发环境且配置了代理）
+if (process.env.NODE_ENV === 'development') {
+  setupGlobalProxy()
+}
 
 /**
  * 批次响应格式校验错误

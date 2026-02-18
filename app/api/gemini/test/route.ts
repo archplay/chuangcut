@@ -9,6 +9,7 @@ import { SAFETY_SETTINGS } from '@/lib/ai/gemini/constants/safety-settings'
 import { parseServiceAccountJson } from '@/lib/ai/gemini-utils'
 import { authenticate } from '@/lib/auth/unified-auth'
 import { checkRateLimit, RATE_LIMIT_PRESETS } from '@/lib/rate-limit'
+import { setupGlobalProxy } from '@/lib/utils/proxy-setup'
 
 const vertexSchema = z.object({
   platform: z.literal('vertex'),
@@ -40,6 +41,9 @@ const normalizeLocation = (location?: string) => {
 const normalizeModelId = (modelId: string) => modelId.replace(/^models\//, '')
 
 export async function POST(req: NextRequest) {
+  if (process.env.NODE_ENV === 'development') {
+    setupGlobalProxy()
+  }
   try {
     // 统一认证
     const auth = await authenticate(req)
@@ -56,6 +60,8 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
+    console.log('[GeminiTest] Request body:', JSON.stringify(body))
+    
     const data = requestSchema.parse(body)
 
     if (data.platform === 'vertex') {
@@ -63,6 +69,7 @@ export async function POST(req: NextRequest) {
     }
     return await testAIStudio(data)
   } catch (error: unknown) {
+    console.error('[GeminiTest] Error:', error)
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: '参数校验失败', details: error.flatten() }, { status: 400 })
     }
@@ -71,6 +78,7 @@ export async function POST(req: NextRequest) {
       {
         error: '测试调用失败',
         message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
       },
       { status: 500 },
     )
